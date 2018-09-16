@@ -1,6 +1,6 @@
 # pc-arduino-rgb-controller
 
-A personal RGB LED controller and smart notifications indicator for my gaming PC, arduino controller with a .NET application to control the LED via PC.
+RGB LED controller and smart notifications indicator for my gaming PC, arduino controller with a .NET application to control the LED via PC. This is a personal project I made for myself, so use it at your own risk.
 
 ## The Desktop Application
 
