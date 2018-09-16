@@ -28,6 +28,11 @@ namespace LedTrialApp
             AnimationCombo.SelectedIndex = 0;
             serialPort1 = new SerialPort("COM" +comport.Text, 38400);
             myNotifyIcon.Visible = true;
+
+            //Smart notifications
+            // Send a UDP Packet to PC with the format LEDX10:R,G,B,254
+            // R,G,B values between 0-255
+            // 254 <-- notification effect
             Task.Run(() =>
             {
                 using (var udpClient = new UdpClient(55050))
