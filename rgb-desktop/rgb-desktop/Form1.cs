@@ -144,6 +144,7 @@ namespace LedTrialApp
                     //byte[] MyMessage = System.Text.Encoding.UTF8.GetBytes(color);
                     //byte[] MyMessage = System.Text.Encoding.GetEncoding(1252).GetBytes(color);
                     // serialPort1.Write(MyMessage, 0, MyMessage.Length);
+                    color = color + ","+speedText.Text + ","+ledCounts.Text; 
                     serialPort1.WriteLine(color);
                     serialPort1.Close();
                 }
@@ -197,9 +198,7 @@ namespace LedTrialApp
                 e.Cancel = true;
             }
             else
-            
                 setColor("0,0,0,255");
-
         }
 
         
