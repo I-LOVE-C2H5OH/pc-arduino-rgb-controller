@@ -60,7 +60,7 @@ public:
     }
     if(m_isBreathing)
     {
-      breathing(100);
+      breathing(30);
     }
     m_pixels->show();
   }
@@ -139,8 +139,8 @@ private:
         bright = 255;
         dir = -1;
       }
-      if (bright < 0) {
-        bright = 0;
+      if (bright < 1) {
+        bright = 1;
         dir = 1;
       }
       m_timeBreathing = 0;
