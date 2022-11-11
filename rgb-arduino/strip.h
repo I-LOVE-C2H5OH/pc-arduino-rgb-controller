@@ -21,16 +21,25 @@ public:
     uint16_t Blue = 0;
   };
 
+  struct Setting
+  {
+    uint16_t controlPin = 0;
+    uint16_t ledCount = 0;
+    LightMode mode = LightMode::staticLight;
+    RGB rgb;
+  };
+
   Strip(uint16_t controlPin, uint16_t ledCount)
   :m_ledCount(ledCount), m_controlPin(controlPin), m_pixelColor(0)
   {
-    m_pixels = new  Adafruit_NeoPixel(m_ledCount, m_controlPin, NEO_GRB + NEO_KHZ800);
-    m_pixelColor = m_pixels->Color(0, 0, 0);
-    // END of Trinket-specific code.
-    m_pixels->clear(); 
-    m_pixels->begin();
-    m_pixels->show();
-    m_pixels->begin(); // INITIALIZE NeoPixel strip object (REQUIRED)
+    RGB rgb;
+    init(rgb);
+  }
+
+  Strip(Setting setting)
+  :m_ledCount(setting.ledCount), m_controlPin(setting.controlPin), m_pixelColor(0)
+  {
+    init(setting.rgb);
   }
 
   uint16_t getLedCount()
@@ -47,6 +56,10 @@ public:
   {
     m_time += ftime;
     m_timeBreathing += ftime;
+    if (Serial.available() > 0)
+    {
+      return;
+    }
     switch(m_lightMode)
     {
       case LightMode::staticLight:
@@ -87,6 +100,17 @@ public:
   }
 
 private:
+
+  void init(RGB rgb)
+  {
+    m_pixels = new  Adafruit_NeoPixel(m_ledCount, m_controlPin, NEO_GRB + NEO_KHZ800);
+    m_pixelColor = m_pixels->Color(rgb.Red, rgb.Green, rgb.Blue);
+    // END of Trinket-specific code.
+    m_pixels->clear(); 
+    m_pixels->begin();
+    m_pixels->begin(); // INITIALIZE NeoPixel strip object (REQUIRED)
+  }
+
   void filling(uint8_t wait, uint32_t newColor)
   {
     if(m_time > wait)
