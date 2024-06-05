@@ -1,134 +1,83 @@
-#include "strip.h"
-#include <EEPROM.h>
+// простейшие динамические эффекты
+// сначала ознакомься с примером microLED_guide !!!
 
-#define PIN 6 // On Trinket or Gemma, suggest changing this to 1
+unsigned long time = 0;
 
-#define NUMPIXELS 44
+#define STRIP_PIN 6     // пин ленты
+#define NUMLEDS 51      // кол-во светодиодов
 
-Strip* strips[4]; // количество лент ставим 3
-
-unsigned long timeWork = 0;
-
-String inString = "";
+#define COLOR_DEBTH 3
+#include <microLED.h>   // подключаем библу
+microLED<NUMLEDS, STRIP_PIN, MLED_NO_CLOCK, LED_WS2818, ORDER_GRB, CLI_AVER> strip;
 
 void setup() {
-  // These lines are specifically to support the Adafruit Trinket 5V 16 MHz.
-  // Any other board, you can remove this part (but no harm leaving it):
-#if defined(__AVR_ATtiny85__) && (F_CPU == 16000000)
-  clock_prescale_set(clock_div_1);
-#endif
-  Serial.begin(9600);
-  strips[0] = new Strip(PIN, NUMPIXELS);
-  strips[1] = new Strip(5, NUMPIXELS);
-  strips[0]->setState(Strip::LightMode::rainbow);
-  strips[1]->setState(Strip::LightMode::rainbow);
-  Strip::RGB newColor;
-  newColor.Red = 170;
-  newColor.Blue = 255;
-  newColor.Green = 50;
-  strips[0]->setColor(newColor);
+  strip.setBrightness(255);
 }
 
 void loop() {
-  auto ftime = millis() - timeWork;
 
-  timeWork = millis();
-
-  // Глобальный цикл по всем не нулевым лентам.
-  for (auto const& strip : strips)
+  long tempTime = millis();
+  if(tempTime - time >= 30)
   {
-     if (Serial.available() > 0)
-      {
-        break;
-      }
-    if(strip)
-    {
-      strip->update(ftime);
-    }
-  }
+    // раскомментируй нужный эффект
+    //rainbow();      // бегущая радуга во всю ленту
+    filler();       // плавное заполнение
+    //colorCycle();   // плавная смена цвета
+    //runningDots();  // бегущие точки
 
-  //Принимаемые данные:
-
-    while (Serial.available() > 0) {
-    int inChar = Serial.read();
-    if (inChar) {
-      // convert the incoming byte to a char and add it to the string:
-      inString += (char)inChar;
-    }
-    // if you get a newline, print the string, then the string's value:
-    if (inChar == '\n') 
-    {
-      bool allReady = false;
-      uint16_t readCommand[7];
-      uint16_t currentCommand = 0;
-      String tmpStr = "";
-      for(int i = 0; i < inString.length(); i++)
-      {
-        if(inString[i] != ',')
-        {
-          tmpStr+=inString[i];
-        }
-        else
-        {
-          readCommand[currentCommand] = tmpStr.toInt();
-          currentCommand++;
-          if(currentCommand == 6)
-          {
-            allReady = true;
-          }
-          tmpStr="";
-        }
-      }
-      inString = "";
-      if(!allReady) {continue;}
-      // 0,1,255,0,0,255,0
-      uint16_t readline(readCommand[0]);
-      uint16_t readmode(readCommand[1]);
-      uint16_t readred = readCommand[2];
-      uint16_t readgreen = readCommand[3];
-      uint16_t readblue = readCommand[4];
-      uint16_t readbrightness = readCommand[5];
-      uint16_t readbreathing = readCommand[6];
-      bool isBreathing = false;
-      Strip::LightMode lightMode = Strip::LightMode::staticLight;
-      switch(readmode)
-      {
-        case 0:
-        lightMode = Strip::LightMode::staticLight;
-        break;
-        case 1:
-        lightMode = Strip::LightMode::filling;
-        break;
-        case 2:
-        lightMode = Strip::LightMode::rainbow;
-        break;
-      }
-      Strip::RGB newColor;
-      newColor.Red = readred;
-      newColor.Blue = readblue;
-      newColor.Green = readgreen;
-      if(auto const& strip = strips[readline])
-      {
-        strip->setBrightness(readbrightness);
-        strip->setBreathing(isBreathing);
-        strip->setColor(newColor);
-        strip->setState(lightMode);
-      }
-      Serial.println("ok");
-    }
+    // вывод
+    //breathing();    // "дыхание" яркости, применяется ко всем эффектам
+    strip.show();   // вывод
+    time =tempTime;
   }
 }
 
-  void save()
-  {
-    //Save new configuration to EEPROM
-    // 0 - stripCount os not null
-    byte notzeroStrips = 0;
-    for (auto const& strip : strips)
-    {
-      if(strip)
-      {
-
-      }
-    }
+void rainbow() {
+  static byte counter = 0;
+  for (int i = 0; i < NUMLEDS; i++) {
+    strip.set(i, mWheel8(counter + i * 255 / NUMLEDS));   // counter смещает цвет
   }
+  counter += 3;   // counter имеет тип byte и при достижении 255 сбросится в 0
+}
+
+void filler() {
+  static int counter = 0;
+  strip.clear();
+  strip.fill(0, counter, mRed);
+  counter++;
+  if (counter >= NUMLEDS) counter = 0;
+}
+
+void colorCycle() {
+  static byte counter = 0;
+  strip.fill(mWheel8(counter));
+  counter += 3;
+}
+
+void runningDots() {
+  static byte counter = 0;
+  // перемотка буфера со сдвигом (иллюзия движения пикселей)
+  for (int i = 0; i < NUMLEDS - 1; i++) strip.leds[i] = strip.leds[i + 1];
+
+  // каждый третий вызов - последний пиксель красным, иначе чёрным
+  if (counter % 3 == 0) strip.leds[NUMLEDS - 1] = mRed;
+  else strip.leds[NUMLEDS - 1] = mBlack;
+  counter++;
+  delay(100);   // дополнительная задержка
+}
+
+void breathing() {
+  static int dir = 1;
+  static int bright = 0;
+  bright += dir * 5;    // 5 - множитель скорости изменения
+
+  if (bright > 255) {
+    bright = 255;
+    dir = -1;
+  }
+  if (bright < 0) {
+    bright = 0;
+    dir = 1;
+  }
+  strip.setBrightness(bright);
+}
